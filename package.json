@@ -15,6 +15,6 @@
     "_awsp": "./run.sh"
   },
   "dependencies": {
-    "inquirer": "^5.0.1"
+    "@inquirer/prompts": "^7.8.4"
   }
 }
