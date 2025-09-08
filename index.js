@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
-const inquirer = require('inquirer');
+const { search } = require('@inquirer/prompts');
 
 console.log('AWS Profile Switcher');
 
@@ -10,7 +10,7 @@ const profileRegex = /\[profile .*]/g;
 const bracketsRemovalRegx = /(\[profile )|(\])/g;
 const defaultProfileChoice = 'default';
 
-const promptProfileChoice = (data) => {
+const promptProfileChoice = async (data) => {
   const matches = data.match(profileRegex);
 
   if (!matches) {
@@ -27,17 +27,23 @@ const promptProfileChoice = (data) => {
 
   profiles.push(defaultProfileChoice);
 
-  const profileChoice = [
-    {
-      type: 'list',
-      name: 'profile',
-      message: 'Choose a profile',
-      choices: profiles,
-      default: process.env.AWS_PROFILE || defaultProfileChoice
-    }
-  ];
+  const profile = await search({
+    message: 'Choose a profile (type to search)',
+    source: async (input) => {
+      if (!input) {
+        return profiles.map(profile => ({ name: profile, value: profile }));
+      }
 
-  return inquirer.prompt(profileChoice);
+      const filtered = profiles.filter(profile =>
+        profile.toLowerCase().includes(input.toLowerCase())
+      );
+
+      return filtered.map(profile => ({ name: profile, value: profile }));
+    },
+    pageSize: 10
+  });
+
+  return { profile };
 }
 
 const readAwsProfiles = () => {
@@ -54,7 +60,7 @@ const readAwsProfiles = () => {
 
 const writeToConfig = (answers) => {
   const profileChoice =
-        answers.profile === defaultProfileChoice ? '' : answers.profile;
+    answers.profile === defaultProfileChoice ? '' : answers.profile;
 
   return new Promise((resolve, reject) => {
     fs.writeFile(`${homeDir}/.awsp`, profileChoice, { flag: 'w' }, function (err) {
@@ -68,9 +74,20 @@ const writeToConfig = (answers) => {
 };
 
 readAwsProfiles()
-  .then(promptProfileChoice)
-  .then(writeToConfig)
+  .then(async (data) => {
+    const answers = await promptProfileChoice(data);
+    if (answers) {
+      return writeToConfig(answers);
+    }
+  })
   .catch(error => {
-    console.log('Error:', error);
-    process.exit(1);
+    // Handle user cancellation (Ctrl+C)
+    if (error.name === 'ExitPromptError') {
+      console.log('\nOperation cancelled by user.');
+      process.exit(0);
+    }
+    else {
+      console.log('Error:', error);
+      process.exit(1);
+    }
   });

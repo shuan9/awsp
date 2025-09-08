@@ -5,8 +5,7 @@
   "main": "index.js",
   "homepage": "https://github.com/johnnyopao/awsp",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "./postinstall.sh"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Johnny Opao",
   "license": "ISC",
@@ -15,6 +14,6 @@
     "_awsp": "./run.sh"
   },
   "dependencies": {
-    "inquirer": "^5.0.1"
+    "@inquirer/prompts": "^7.8.4"
   }
 }
